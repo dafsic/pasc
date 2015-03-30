@@ -92,19 +92,11 @@ void usage()
     printf("mampage is ok!\n");
 }
 
-void pasc_connect(char *ipaddr)
-{
-	printf("ok %s\n",ipaddr);
-}
 void pasc_query(char *name)
 {
 	printf("ok %s\n",name);
 }
 void pasc_join(char *name)
-{
-	printf("ok %s\n",name);
-}
-void pasc_login(char *name)
 {
 	printf("ok %s\n",name);
 }
