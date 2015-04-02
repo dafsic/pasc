@@ -70,7 +70,7 @@ void pasc_login(char *name)
 {
 	int ret = 0;
 	ret = init_daemon();
-	sleep(1000);
+	slee(1000);
 	printf("login ok %s\n",name);
 }
 
