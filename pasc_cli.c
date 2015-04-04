@@ -1,21 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  pasc_cli.c
- *
- *    Description:  pasc client program 
- *
- *        Version:  1.0
- *        Created:  03/25/2015 09:27:51 PM
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  ZhaoKaiqiang
- *   Organization:  
- *
- * =====================================================================================
- */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
