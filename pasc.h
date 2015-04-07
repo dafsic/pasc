@@ -16,7 +16,18 @@
 #define MAXBUF 1024
 #define MAXCONN 5
 
-enum STATUS{UNKNOW,REQUEST,TALKING,END};
+void usage();
+void pasc_connect(char *ipaddr);
+void pasc_query(char *name);
+void pasc_join(char *name);
+void pasc_login(char *name);
+void pasc_exit(char *name);
+void pasc_update(char *name);
+void talking(int conn_fd);
+
+enum CLISTATUS {UNKNOW,REQUEST,TALKING,ENDING};
+enum SRVSTATUS {WAITING,CONFIRM,TALKED,ENDED};
+
 #define ERR_EXIT(m)\
 	do \
 	{\

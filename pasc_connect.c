@@ -1,31 +1,57 @@
 #include "pasc.h"
-enum STATUS status = NUKNOW;
+enum CLISTATUS cli_status = UNKNOW;
 
 void request(int conn_fd)
 {
 	int qid = 100,aid =0;
 	int recv_bytes;
-	send(conn_fd,&id,sizeof(int),0);
+	send(conn_fd,&qid,sizeof(int),0);
 	if((recv_bytes = recv(conn_fd,&aid,sizeof(int),0)) < 0)
 		ERR_EXIT("recv");
-	if(recv_bytes = 0)
-		status = END;
-	else if(aid != 200)
-		status = END;
+	if(recv_bytes == 0||aid != 101)
+		cli_status = ENDING;
 	else
-		status = TALKING;
+		cli_status = TALKING;
 }
 
 void talking(int conn_fd)
 {
-	printf("talking ok!\n");
+	char buf[MAXBUF+1];
+	pid_t pid;
+	if((pid = fork()) < 0)
+		ERR_EXIT("FORK");
+	if(pid > 0)   //parent
+	{
+		int recv_bytes;
+		memset(buf,0,sizeof(buf));
+		while((recv_bytes = recv(conn_fd,buf,sizeof(buf),0)) > 0)
+		{
+			printf("peer say: %s\n",buf);
+			memset(buf,0,sizeof(buf));
+		}
+		if(recv_bytes < 0)
+			ERR_EXIT("RECV");
+		if(recv_bytes == 0)
+		{
+			shutdown(conn_fd,SHUT_RDWR);
+			kill(pid,SIGINT);
+		}
+	}
+	else   //child
+	{
+		while(1)
+		{
+			fgets(buf,sizeof(buf),stdin);
+			if((send(conn_fd,buf,strlen(buf),0)) < 0)
+				ERR_EXIT("SEND");
+		}
+	}
 }
 
 void pasc_connect(char *ipaddr)
 {
-	pid_t pid;
 	int conn_fd;
-	bool cond = true;
+//	unsigned int cond = 1;
 	const unsigned int dest_port = 12341;
 	struct sockaddr_in6 dest_addr;
 	socklen_t addr_len = sizeof(struct sockaddr_in6);
@@ -42,26 +68,28 @@ void pasc_connect(char *ipaddr)
 	if((connect(conn_fd,(struct sockaddr *)&dest_addr,addr_len)) != 0)
 		ERR_EXIT("CONNECT");
 
-	while(cond)
+	cli_status = REQUEST;
+
+	while(cli_status != ENDING)
 	{
-		switch(status)
+		switch(cli_status)
 		{
 			case UNKNOW:
-				status = REQUEST;
+				printf("cli_status is nuknow!\n");
+				exit(1);
 				break;
 			case REQUEST:
 				request(conn_fd);
 			break;
 			case TALKING:
 				talking(conn_fd);
+				cli_status = ENDING;
 				break;
-			case END:
-				cond = false;
+			case ENDING:
+			//	cond = 0;
 				break;
 			default:
 				break;
 		}
 	}
-	sleep(30);
-	shutdown(conn_fd,SHUT_RDWR);
 }

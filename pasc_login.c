@@ -1,6 +1,8 @@
 #include "pasc.h"
 
+enum SRVSTATUS srv_status = WAITING;
 int maxconn = MAXCONN; 
+
 int init_daemon(void)
 {/*{{{*/
 	int i,fd;
@@ -51,32 +53,50 @@ void handler(int num)
 	maxconn++;
 }
 
-void deal_conn(conn_fd)
+void confirm(int conn_fd)
 {
-	pid_t pid;
-	char readbuf[MAXBUF+1];
-	char writebuf[MAXBUF + 1];
+	int qid = 0,aid = 0;
+	int recv_bytes = 0;
 
-	if((pid = fork()) < 0)
-		ERR_EXIT("FORK");
-	if(pid > 0)
-	{
-		int recv_bytes;
-		memset(readbuf,0,sizeof(readbuf));
-		while((recv_bytes = recv(conn_fd,readbuf,sizeof(readbuf),0)) > 0)
-		{
-			printf("peer say %s\n",buf);
-			memset(buf,0,sizeof(readbuf));
-		}
-		if(recv_bytes < 0)
-			ERR_EXIT("RECV");
-	}
+	if((recv_bytes = recv(conn_fd,&qid,sizeof(int),0)) < 0)
+		ERR_EXIT("recv");
+	if(recv_bytes == 0||qid != 100)
+		srv_status = ENDED;
 	else
 	{
+		aid = 101;
+		send(conn_fd,&aid,sizeof(int),0);
+		srv_status = TALKED;
+	}
+}
 
+void deal_conn(int conn_fd)
+{
+	//int cond = 1;
+
+	while(srv_status != ENDED)
+	{
+		switch(srv_status)
+		{
+			case WAITING:
+				printf("srv_status is nuknow!\n");
+				exit(1);
+				break;
+			case CONFIRM:
+				confirm(conn_fd);
+			break;
+			case TALKED:
+				talking(conn_fd);  //only parent process will return,other exit directry;
+				srv_status = ENDED;
+				break;
+			case ENDED:
+			//	cond = 0;
+				break;
+			default:
+				break;
+		}
 	}
 
-	shutdown(conn_fd,SHUT_RDWR);
 	kill(getppid(),SIGUSR1);
 	exit(0);
 }
@@ -123,15 +143,14 @@ void pasc_login(char *name)
 				ERR_EXIT("FORK");
 			if(pid == 0)
 			{
+				srv_status = CONFIRM;
 				deal_conn(conn_fd);
 			}
 			else
 			{
 				continue;
 			}
-			
 		}
-	
 	}
 	shutdown(listen_fd,SHUT_RDWR);
 }/*}}}*/

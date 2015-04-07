@@ -1,14 +1,5 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include "pasc.h"
 
-void usage();
-void pasc_connect(char *ipaddr);
-void pasc_query(char *name);
-void pasc_join(char *name);
-void pasc_login(char *name);
-void pasc_exit(char *name);
-void pasc_update(char *name);
 
 int main ( int argc, char *argv[] )
 {
