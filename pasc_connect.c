@@ -50,7 +50,7 @@ void talking(int conn_fd)
 
 void pasc_connect(char *ipaddr)
 {
-	int conn_fd;
+	int conn_fd,ret;
 //	unsigned int cond = 1;
 	const unsigned int dest_port = 12341;
 	struct sockaddr_in6 dest_addr;
@@ -58,12 +58,21 @@ void pasc_connect(char *ipaddr)
 
 	if ((conn_fd = socket(PF_INET6,SOCK_STREAM,0)) < 0)
 		ERR_EXIT("SOCKET");
-	printf("addrs is :%s",ipaddr);	
 	memset(&dest_addr,0,addr_len);
 	dest_addr.sin6_family = AF_INET6;
+	//dest_addr.sin6_family = AF_UNIX;
 	dest_addr.sin6_port = htons(dest_port);
-	if((inet_pton(AF_INET6,ipaddr,&dest_addr.sin6_addr)) < 0)
-		ERR_EXIT("inet_pton");
+	if((ret = inet_pton(AF_INET6,ipaddr,&dest_addr.sin6_addr)) <= 0)
+	{
+		if(ret == 0)
+		{
+			printf("src does not contain a character stringrepresenting a valid network address in the specified address family\n");
+		}
+		else
+		{
+			ERR_EXIT("inet_pton");
+		}
+	}
 
 	if((connect(conn_fd,(struct sockaddr *)&dest_addr,addr_len)) != 0)
 		ERR_EXIT("CONNECT");

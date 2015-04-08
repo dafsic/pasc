@@ -4,9 +4,9 @@
 ------
 
 ###预计使用方法
-> * pasc –s  ipv6地址   与具有此ipv6地址的人开始一个会话
+> * pasc –c  ipv6地址   与具有此ipv6地址的人开始一个会话
+> * pasc -l  [name] 用户登陆,即开始监听12341端口
 > * pasc –q  name      返回名字为name的用户的ipv6地址
-> * pasc -l  name 用户登陆
 > * pasc -j  name 用户注册
 > * pasc -f  name 刷新ipv6地址
 
@@ -25,3 +25,15 @@
 :--------   | :-----  | :----  |:-----|:----
 1    | dafsic |fe80::76d4:35ff:fe83:a300 |yes|2015-03-02
 2 |alkaid|fe80::fc54:ff:fe67:629e |no|2015-01-21
+
+------
+###相关知识
+> * 本地链路地址只用于本地链路范围,不能在站点内的子网间路由（fe80::)
+> * 站点本地类似与ipv4的内网的概念
+> * 当指定AF_INET6时，如果用链路本地地址，在connect时会出现Invalid argument错误
+> * 站点本地地址则可以
+> * 关闭两端的防火墙进行测试
+> * ifconfig eth0:1 inet6 add fec0::3/64添加站点本地地址
+> * netstat -ant 查看tcp端口
+> * tcpdump -nt -X -i eth0 'src fec0::3 || dst fec0::3'抓包
+
