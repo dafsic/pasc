@@ -145,11 +145,13 @@ void pasc_login(char *name)
 				ERR_EXIT("FORK");
 			if(pid == 0)
 			{
+				close(listen_fd);
 				srv_status = CONFIRM;
 				deal_conn(conn_fd);
 			}
 			else
 			{
+				close(conn_fd);
 				continue;
 			}
 		}
