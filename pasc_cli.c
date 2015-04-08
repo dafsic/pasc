@@ -11,7 +11,7 @@ int main ( int argc, char *argv[] )
 		return 1;
 	}
 	
-    opt = getopt(argc,argv,"hc:q:j:l:e:u:");
+    opt = getopt(argc,argv,"hc:q:j:l::e:u:");
 	switch(opt)
 		{
 		case 'c':
