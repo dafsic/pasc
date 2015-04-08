@@ -122,6 +122,8 @@ void pasc_login(char *name)
 	serv_addr.sin6_port = htons(listen_port);
 	serv_addr.sin6_addr = in6addr_any;
 
+	int reuse = 1;
+	setsockopt(listen_fd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
 	if((bind(listen_fd,(struct sockaddr *)&serv_addr,addr_len)) == -1)
 		ERR_EXIT("BIND");
 

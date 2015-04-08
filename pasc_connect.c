@@ -58,7 +58,7 @@ void pasc_connect(char *ipaddr)
 
 	if ((conn_fd = socket(PF_INET6,SOCK_STREAM,0)) < 0)
 		ERR_EXIT("SOCKET");
-	
+	printf("addrs is :%s",ipaddr);	
 	memset(&dest_addr,0,addr_len);
 	dest_addr.sin6_family = AF_INET6;
 	dest_addr.sin6_port = htons(dest_port);

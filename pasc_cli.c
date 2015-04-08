@@ -62,7 +62,8 @@ int main ( int argc, char *argv[] )
 
 void usage()
 {
-    printf("mampage is ok!\n");
+    printf("Usage:\n");
+	printf("	pasc [-ehjqu] [-c ipv6_addr] [-l name]\n");
 }
 
 void pasc_query(char *name)
