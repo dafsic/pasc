@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
@@ -25,8 +26,9 @@ void pasc_exit(char *name);
 void pasc_update(char *name);
 void talking(int conn_fd);
 
-enum CLISTATUS {UNKNOW,REQUEST,TALKING,ENDING};
-enum SRVSTATUS {WAITING,CONFIRM,TALKED,ENDED};
+//enum CLISTATUS {UNKNOW,REQUEST,TALKING,ENDING};
+//enum SRVSTATUS {WAITING,CONFIRM,TALKED,ENDED};
+enum STATUS {UNKNOW,REQUEST,TALKING,END};
 
 #define ERR_EXIT(m)\
 	do \

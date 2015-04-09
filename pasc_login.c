@@ -1,6 +1,7 @@
 #include "pasc.h"
 
-enum SRVSTATUS srv_status = WAITING;
+//enum SRVSTATUS srv_status = WAITING;
+enum STATUS srv_status = UNKNOW;
 int maxconn = MAXCONN; 
 
 int init_daemon(void)
@@ -61,12 +62,12 @@ void confirm(int conn_fd)
 	if((recv_bytes = recv(conn_fd,&qid,sizeof(int),0)) < 0)
 		ERR_EXIT("recv");
 	if(recv_bytes == 0||qid != 100)
-		srv_status = ENDED;
+		srv_status = END;
 	else
 	{
 		aid = 101;
 		send(conn_fd,&aid,sizeof(int),0);
-		srv_status = TALKED;
+		srv_status = TALKING;
 	}
 }
 
@@ -74,22 +75,22 @@ void deal_conn(int conn_fd)
 {
 	//int cond = 1;
 
-	while(srv_status != ENDED)
+	while(srv_status != END)
 	{
 		switch(srv_status)
 		{
-			case WAITING:
-				printf("srv_status is nuknow!\n");
+			case UNKNOW:
+				printf("srv_status is unknow!\n");
 				exit(1);
 				break;
-			case CONFIRM:
+			case REQUEST:
 				confirm(conn_fd);
 			break;
-			case TALKED:
+			case TALKING:
 				talking(conn_fd);  //only parent process will return,other exit directry;
-				srv_status = ENDED;
+				srv_status = END;
 				break;
-			case ENDED:
+			case END:
 			//	cond = 0;
 				break;
 			default:
@@ -146,7 +147,7 @@ void pasc_login(char *name)
 			if(pid == 0)
 			{
 				close(listen_fd);
-				srv_status = CONFIRM;
+				srv_status = REQUEST;
 				deal_conn(conn_fd);
 			}
 			else

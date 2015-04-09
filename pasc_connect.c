@@ -1,5 +1,6 @@
 #include "pasc.h"
-enum CLISTATUS cli_status = UNKNOW;
+//enum CLISTATUS cli_status = UNKNOW;
+enum STATUS cli_status = UNKNOW;
 
 void request(int conn_fd)
 {
@@ -9,41 +10,56 @@ void request(int conn_fd)
 	if((recv_bytes = recv(conn_fd,&aid,sizeof(int),0)) < 0)
 		ERR_EXIT("recv");
 	if(recv_bytes == 0||aid != 101)
-		cli_status = ENDING;
+		cli_status = END;
 	else
 		cli_status = TALKING;
 }
 
 void talking(int conn_fd)
 {
+	fd_set rfds;
+	int retval;
+	int recv_bytes;
+	int stdin_fd,maxfd;
 	char buf[MAXBUF+1];
-	pid_t pid;
-	if((pid = fork()) < 0)
-		ERR_EXIT("FORK");
-	if(pid > 0)   //parent
+
+	FD_ZERO(&rfds);
+	stdin_fd = fileno(stdin);
+	if(stdin_fd > conn_fd)
+		maxfd = stdin_fd+1;
+	else
+		maxfd = conn_fd+1;
+	while(1)
 	{
-		int recv_bytes;
-		memset(buf,0,sizeof(buf));
-		while((recv_bytes = recv(conn_fd,buf,sizeof(buf),0)) > 0)
+		FD_SET(stdin_fd,&rfds);
+		FD_SET(conn_fd,&rfds);
+		retval = select(maxfd,&rfds,NULL,NULL,NULL);
+		if(retval == -1)
+			ERR_EXIT("SELECT");
+
+		if(FD_ISSET(stdin_fd,&rfds))
 		{
-			printf("peer say: %s\n",buf);
 			memset(buf,0,sizeof(buf));
-		}
-		if(recv_bytes < 0)
-			ERR_EXIT("RECV");
-		if(recv_bytes == 0)
-		{
-			shutdown(conn_fd,SHUT_RDWR);
-			kill(pid,SIGINT);
-		}
-	}
-	else   //child
-	{
-		while(1)
-		{
 			fgets(buf,sizeof(buf),stdin);
 			if((send(conn_fd,buf,strlen(buf),0)) < 0)
 				ERR_EXIT("SEND");
+		}
+		if(FD_ISSET(conn_fd,&rfds))
+		{
+			memset(buf,0,sizeof(buf));
+			recv_bytes = recv(conn_fd,buf,sizeof(buf),0);
+			if(recv_bytes < 0)
+				ERR_EXIT("RECV");
+			if(recv_bytes == 0)
+			{
+				shutdown(conn_fd,SHUT_RDWR);
+				break;
+			}
+			if(recv_bytes > 0)
+			{
+				printf("peer say: %s\n",buf);
+				memset(buf,0,sizeof(buf));
+			}
 		}
 	}
 }
@@ -79,7 +95,7 @@ void pasc_connect(char *ipaddr)
 
 	cli_status = REQUEST;
 
-	while(cli_status != ENDING)
+	while(cli_status != END)
 	{
 		switch(cli_status)
 		{
@@ -92,9 +108,9 @@ void pasc_connect(char *ipaddr)
 			break;
 			case TALKING:
 				talking(conn_fd);
-				cli_status = ENDING;
+				cli_status = END;
 				break;
-			case ENDING:
+			case END:
 			//	cond = 0;
 				break;
 			default:
