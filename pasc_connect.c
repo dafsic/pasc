@@ -1,27 +1,76 @@
 #include "pasc.h"
 //enum CLISTATUS cli_status = UNKNOW;
 enum STATUS cli_status = UNKNOW;
+char passphrase2[MAXPASS];
 
 void request(int conn_fd)
 {
-	int qid = 100,aid =0;
-	int recv_bytes;
-	send(conn_fd,&qid,sizeof(int),0);
-	if((recv_bytes = recv(conn_fd,&aid,sizeof(int),0)) < 0)
-		ERR_EXIT("recv");
-	if(recv_bytes == 0||aid != 101)
-		cli_status = END;
-	else
-		cli_status = TALKING;
+	do
+	{
+		int seq,pseq;
+		int rbytes,sbytes;
+		PMSG sbuf,rbuf;
+		memset(&sbuf,0,sizeof(sbuf));
+
+		srand(time(NULL));
+		seq = rand();
+		printf("Type passphrase1:");
+		fgets(sbuf.data,sizeof(sbuf.data),stdin);
+		printf("Type passphrase2:");
+		fgets(passphrase2,sizeof(passphrase2),stdin);
+
+		sbytes = strlen(sbuf.data) + sizeof(int);
+		sbuf.len = htonl(strlen(sbuf.data));
+		if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+			ERR_EXIT("SEND");
+		//===========send passphrase1==================================
+
+		memset(&sbuf,0,sizeof(PMSG));
+		sprintf(sbuf.data,"%d",seq);
+		//encode(&seq);
+		sbytes = strlen(sbuf.data) + sizeof(int);
+		sbuf.len = htonl(strlen(sbuf.data));
+		if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+			ERR_EXIT("SEND");
+		//=========send seq=============================================
+
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+			ERR_EXIT("recv");
+		if(rbytes == 0)
+		{
+			cli_status = END;
+			break;
+		}
+		else
+		{
+			pseq = atoi(rbuf.data);
+			if(pseq != seq + 1)
+			{
+				cli_status = END;
+				break;
+			}
+			seq = pseq+1;	
+
+			memset(&sbuf,0,sizeof(sbuf));
+			sprintf(sbuf.data,"%d",seq);
+			sbytes = strlen(sbuf.data) + sizeof(int);
+			sbuf.len = htonl(strlen(sbuf.data));
+			//encode(sbuf);
+			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+				ERR_EXIT("SEND");
+			cli_status = TALKING;
+		}
+		
+	}while(0);
 }
 
 void talking(int conn_fd)
 {
 	fd_set rfds;
 	int retval;
-	int recv_bytes;
+	int rbytes,sbytes;
 	int stdin_fd,maxfd;
-	char buf[MAXBUF+1];
+	PMSG sbuf,rbuf;
 
 	FD_ZERO(&rfds);
 	stdin_fd = fileno(stdin);
@@ -39,26 +88,27 @@ void talking(int conn_fd)
 
 		if(FD_ISSET(stdin_fd,&rfds))
 		{
-			memset(buf,0,sizeof(buf));
-			fgets(buf,sizeof(buf),stdin);
-			if((send(conn_fd,buf,strlen(buf),0)) < 0)
+			memset(&sbuf,0,sizeof(sbuf));
+			fgets(sbuf.data,sizeof(sbuf.data),stdin);
+			sbytes = strlen(sbuf.data) + sizeof(int);
+			sbuf.len = htonl(strlen(sbuf.data));
+			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
 				ERR_EXIT("SEND");
 		}
 		if(FD_ISSET(conn_fd,&rfds))
 		{
-			memset(buf,0,sizeof(buf));
-			recv_bytes = recv(conn_fd,buf,sizeof(buf),0);
-			if(recv_bytes < 0)
-				ERR_EXIT("RECV");
-			if(recv_bytes == 0)
+			//memset(&rbuf,0,sizeof(rbuf));
+			rbytes = recvpmsg(conn_fd,&rbuf);
+			if(rbytes < 0)
+				ERR_EXIT("recvpmsg");
+			if(rbytes == 0)
 			{
 				shutdown(conn_fd,SHUT_RDWR);
 				break;
 			}
-			if(recv_bytes > 0)
+			if(rbytes > 0)
 			{
-				printf("peer say: %s\n",buf);
-				memset(buf,0,sizeof(buf));
+				printf("peer say: %s",rbuf.data);
 			}
 		}
 	}
@@ -108,6 +158,7 @@ void pasc_connect(char *ipaddr)
 			break;
 			case TALKING:
 				talking(conn_fd);
+				printf("peer end connecting\n");
 				cli_status = END;
 				break;
 			case END:

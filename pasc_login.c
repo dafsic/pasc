@@ -1,4 +1,5 @@
 #include "pasc.h"
+char passphrase3[MAXPASS];
 
 //enum SRVSTATUS srv_status = WAITING;
 enum STATUS srv_status = UNKNOW;
@@ -50,31 +51,79 @@ int init_daemon(void)
 
 void handler(int num)
 {
-	printf("child end\n");
+	printf("peer end connecting\n");
 	maxconn++;
 }
 
 void confirm(int conn_fd)
 {
-	int qid = 0,aid = 0;
-	int recv_bytes = 0;
-
-	if((recv_bytes = recv(conn_fd,&qid,sizeof(int),0)) < 0)
-		ERR_EXIT("recv");
-	if(recv_bytes == 0||qid != 100)
-		srv_status = END;
-	else
+	do
 	{
-		aid = 101;
-		send(conn_fd,&aid,sizeof(int),0);
-		srv_status = TALKING;
-	}
+		int seq,pseq;
+		int rbytes,sbytes;
+		PMSG rbuf,sbuf;
+		memset(&sbuf,0,sizeof(sbuf));
+
+		printf("Is connecting,wait!\n");
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+			ERR_EXIT("recv");
+		if(rbytes == 0)
+		{
+			srv_status = END;
+			break;
+		}
+		else
+		{
+			printf("peer passphrase1 is %s\n",rbuf.data);
+			printf("Type passphrase2:");
+			fflush(stdin);
+			fgets(passphrase3,sizeof(passphrase3),stdin);
+		}
+		//========recive passphrase1=========================
+
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+			ERR_EXIT("recv");
+		if(rbytes == 0)
+		{
+			srv_status = END;
+			break;
+		}
+		else
+		{
+			//decode(rbuf);
+			pseq = atoi(rbuf.data);
+			seq = pseq + 1;
+			sprintf(sbuf.data,"%d",seq);
+			sbytes = strlen(sbuf.data) + sizeof(int);
+			sbuf.len = htonl(strlen(sbuf.data));
+			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+				ERR_EXIT("SEND");
+		}
+		//=========recive pseq and send seq====================
+
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+			ERR_EXIT("recv");
+		if(rbytes == 0)
+		{
+			srv_status = END;
+			break;
+		}
+		else
+		{
+			//decode(rbuf);
+			pseq = atoi(rbuf.data);
+			if(pseq == seq + 1)
+				srv_status = TALKING;
+			else
+				srv_status = END;
+		}
+
+	}while(0);
 }
 
 void deal_conn(int conn_fd)
 {
 	//int cond = 1;
-
 	while(srv_status != END)
 	{
 		switch(srv_status)
