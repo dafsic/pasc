@@ -1,3 +1,5 @@
+#ifndef __PASC_H__
+#define __PASC_H__
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/select.h>
@@ -18,12 +20,13 @@
 
 #define MAXBUF 1024
 #define MAXCONN 5
-#define MAXPASS 256
+#define MAXPASS 1024
 
 enum STATUS {UNKNOW,REQUEST,TALKING,END};
 
 typedef struct pasc_msg{
 	int len;
+	char md5[16];
 	char data[MAXBUF];
 }PMSG;
 
@@ -39,7 +42,8 @@ void talking(int conn_fd);
 ssize_t sendn(int sockfd,const void*buf,size_t len,int flags);
 ssize_t recvn(int sockfd,void *buf,size_t len,int flags);
 int recvpmsg(int sockfd,PMSG *msg);
-
+int sendpmsg(int sockfd,const char *data);
+void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest); 
 
 
 //enum CLISTATUS {UNKNOW,REQUEST,TALKING,ENDING};
@@ -50,4 +54,5 @@ int recvpmsg(int sockfd,PMSG *msg);
 		perror(m);\
 		exit(EXIT_FAILURE);\
 	}while(0);
+#endif
 

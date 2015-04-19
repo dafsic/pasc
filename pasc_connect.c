@@ -3,39 +3,42 @@
 enum STATUS cli_status = UNKNOW;
 char passphrase2[MAXPASS];
 
+
 void request(int conn_fd)
 {
 	do
 	{
 		int seq,pseq;
-		int rbytes,sbytes;
-		PMSG sbuf,rbuf;
-		memset(&sbuf,0,sizeof(sbuf));
+		int rbytes;
+		char data[MAXBUF];
+		PMSG rbuf;
 
-		srand(time(NULL));
-		seq = rand();
+		memset(data,0,sizeof(data));
 		printf("Type passphrase1:");
-		fgets(sbuf.data,sizeof(sbuf.data),stdin);
+		fgets(data,sizeof(data),stdin);
 		printf("Type passphrase2:");
 		fgets(passphrase2,sizeof(passphrase2),stdin);
 
-		sbytes = strlen(sbuf.data) + sizeof(int);
-		sbuf.len = htonl(strlen(sbuf.data));
-		if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+		if((sendpmsg(conn_fd,data)) < 0)
 			ERR_EXIT("SEND");
 		//===========send passphrase1==================================
 
-		memset(&sbuf,0,sizeof(PMSG));
-		sprintf(sbuf.data,"%d",seq);
-		//encode(&seq);
-		sbytes = strlen(sbuf.data) + sizeof(int);
-		sbuf.len = htonl(strlen(sbuf.data));
-		if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+		srand(time(NULL));
+		seq = rand();
+		memset(data,0,sizeof(data));
+		sprintf(data,"%d",seq);
+		if((sendpmsg(conn_fd,data)) < 0)
 			ERR_EXIT("SEND");
 		//=========send seq=============================================
 
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
 			ERR_EXIT("recv");
+		if(rbytes == -2)
+		{
+			printf("Data is modfixed illegally!\n");
+			cli_status = END;
+			break;
+		}
 		if(rbytes == 0)
 		{
 			cli_status = END;
@@ -51,12 +54,9 @@ void request(int conn_fd)
 			}
 			seq = pseq+1;	
 
-			memset(&sbuf,0,sizeof(sbuf));
-			sprintf(sbuf.data,"%d",seq);
-			sbytes = strlen(sbuf.data) + sizeof(int);
-			sbuf.len = htonl(strlen(sbuf.data));
-			//encode(sbuf);
-			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+			memset(data,0,sizeof(data));
+			sprintf(data,"%d",seq);
+			if((sendpmsg(conn_fd,data)) < 0)
 				ERR_EXIT("SEND");
 			cli_status = TALKING;
 		}
@@ -67,10 +67,10 @@ void request(int conn_fd)
 void talking(int conn_fd)
 {
 	fd_set rfds;
-	int retval;
-	int rbytes,sbytes;
+	int retval,rbytes;
 	int stdin_fd,maxfd;
-	PMSG sbuf,rbuf;
+	char data[MAXBUF];
+	PMSG rbuf;
 
 	FD_ZERO(&rfds);
 	stdin_fd = fileno(stdin);
@@ -88,25 +88,28 @@ void talking(int conn_fd)
 
 		if(FD_ISSET(stdin_fd,&rfds))
 		{
-			memset(&sbuf,0,sizeof(sbuf));
-			fgets(sbuf.data,sizeof(sbuf.data),stdin);
-			sbytes = strlen(sbuf.data) + sizeof(int);
-			sbuf.len = htonl(strlen(sbuf.data));
-			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+			memset(data,0,sizeof(data));
+			fgets(data,sizeof(data),stdin);
+			if((sendpmsg(conn_fd,data)) < 0)
 				ERR_EXIT("SEND");
 		}
+
 		if(FD_ISSET(conn_fd,&rfds))
 		{
 			//memset(&rbuf,0,sizeof(rbuf));
 			rbytes = recvpmsg(conn_fd,&rbuf);
-			if(rbytes < 0)
+			if(rbytes == -1)
 				ERR_EXIT("recvpmsg");
-			if(rbytes == 0)
+			if(rbytes == -2)
+			{
+				printf("Data is modfixed illegally!\n");
+			}
+			else if(rbytes == 0)
 			{
 				shutdown(conn_fd,SHUT_RDWR);
 				break;
 			}
-			if(rbytes > 0)
+			else if(rbytes > 0)
 			{
 				printf("peer say: %s",rbuf.data);
 			}
@@ -157,6 +160,7 @@ void pasc_connect(char *ipaddr)
 				request(conn_fd);
 			break;
 			case TALKING:
+				printf("Connected!\n");
 				talking(conn_fd);
 				printf("peer end connecting\n");
 				cli_status = END;

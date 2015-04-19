@@ -5,6 +5,7 @@ char passphrase3[MAXPASS];
 enum STATUS srv_status = UNKNOW;
 int maxconn = MAXCONN; 
 
+
 int init_daemon(void)
 {/*{{{*/
 	int i,fd;
@@ -60,13 +61,21 @@ void confirm(int conn_fd)
 	do
 	{
 		int seq,pseq;
-		int rbytes,sbytes;
-		PMSG rbuf,sbuf;
-		memset(&sbuf,0,sizeof(sbuf));
-
-		printf("Is connecting,wait!\n");
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+		int rbytes;
+		PMSG rbuf;
+		char data[MAXBUF];
+		memset(data,0,sizeof(data));
+//		char stdinbuf[1024];
+//		setbuf(stdin,stdinbuf);
+		printf("Is connecting......\n");
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
 			ERR_EXIT("recv");
+		if(rbytes == -2)
+		{
+			printf("1 Date is modfixed illegally!\n");
+			srv_status = END;
+			break;
+		}
 		if(rbytes == 0)
 		{
 			srv_status = END;
@@ -77,12 +86,20 @@ void confirm(int conn_fd)
 			printf("peer passphrase1 is %s\n",rbuf.data);
 			printf("Type passphrase2:");
 			fflush(stdin);
+			//cleanfilebuf(stdin);
+		//	memset(stdinbuf,0,1024);
 			fgets(passphrase3,sizeof(passphrase3),stdin);
 		}
 		//========recive passphrase1=========================
 
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
 			ERR_EXIT("recv");
+		if(rbytes == -2)
+		{
+			printf("2 Date is modfixed illegally!\n");
+			srv_status = END;
+			break;
+		}
 		if(rbytes == 0)
 		{
 			srv_status = END;
@@ -93,16 +110,21 @@ void confirm(int conn_fd)
 			//decode(rbuf);
 			pseq = atoi(rbuf.data);
 			seq = pseq + 1;
-			sprintf(sbuf.data,"%d",seq);
-			sbytes = strlen(sbuf.data) + sizeof(int);
-			sbuf.len = htonl(strlen(sbuf.data));
-			if((sendn(conn_fd,&sbuf,sbytes,0)) < 0)
+			memset(data,0,sizeof(data));
+			sprintf(data,"%d",seq);
+			if((sendpmsg(conn_fd,data)) < 0)
 				ERR_EXIT("SEND");
 		}
 		//=========recive pseq and send seq====================
 
 		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
 			ERR_EXIT("recv");
+		if(rbytes == -2)
+		{
+			printf("3 Date is modfixed illegally!\n");
+			srv_status = END;
+			break;
+		}
 		if(rbytes == 0)
 		{
 			srv_status = END;
@@ -136,6 +158,7 @@ void deal_conn(int conn_fd)
 				confirm(conn_fd);
 			break;
 			case TALKING:
+				printf("Connected!\n");
 				talking(conn_fd);  //only parent process will return,other exit directry;
 				srv_status = END;
 				break;
