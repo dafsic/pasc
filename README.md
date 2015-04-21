@@ -55,3 +55,6 @@
 > * netstat -ant 查看tcp端口
 > * tcpdump -nt -X -i eth0 'src fec0::3 || dst fec0::3'抓包
 
+## License MIT
+Project License can be found [here](LICENSE.md).
+

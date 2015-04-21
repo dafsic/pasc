@@ -11,5 +11,7 @@ libmd5.so:md5.o
 	$(CC) -shared $^ -o $@
 md5.o:md5.c
 	$(CC) -fpic -c $^
+server:server.c
+	$(CC) -o $@ $^ `mysql_config --cflags --libs`
 clean:
 	-rm -f *o pasc md5.o libmd5.so
