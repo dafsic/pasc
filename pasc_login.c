@@ -178,6 +178,7 @@ void pasc_login(char *name)
 {/*{{{*/
 	pid_t pid;
 	int listen_fd,conn_fd;
+	char peeradd[32];
 	const unsigned int listen_port = 12341;
 	struct sockaddr_in6 serv_addr,peer_addr;
 	socklen_t addr_len = sizeof(struct sockaddr_in6);
@@ -212,7 +213,7 @@ void pasc_login(char *name)
 		else
 		{
 			maxconn--;
-//			printf("got connection from %s,port %d,socket %d\n",inet_ntop(AF_INET6,&peer_addr.sin6_addr,buf,sizeof(buf)),peer_addr.sin6_port,conn_fd);
+			printf("----->Got a connection from %s, port %d\n",inet_ntop(AF_INET6,&peer_addr.sin6_addr,peeradd,sizeof(peeradd)),peer_addr.sin6_port);
 			pid = fork();
 			if(pid == -1)
 				ERR_EXIT("FORK");
