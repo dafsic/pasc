@@ -2,7 +2,7 @@
 
 CC = gcc
 CFLAGS = -Wall -g
-SRC = pasc_cli.c pasc_connect.c pasc_login.c protocol.c
+SRC = pasc.c pasc_connect.c pasc_login.c protocol.c encrypt.c
 all:libmd5.so pasc 
 
 pasc: $(SRC)

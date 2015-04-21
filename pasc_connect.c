@@ -19,7 +19,7 @@ void request(int conn_fd)
 		printf("Type passphrase2:");
 		fgets(passphrase2,sizeof(passphrase2),stdin);
 
-		if((sendpmsg(conn_fd,data)) < 0)
+		if((sendpmsg(conn_fd,data,NULL)) < 0)
 			ERR_EXIT("SEND");
 		//===========send passphrase1==================================
 
@@ -27,11 +27,11 @@ void request(int conn_fd)
 		seq = rand();
 		memset(data,0,sizeof(data));
 		sprintf(data,"%d",seq);
-		if((sendpmsg(conn_fd,data)) < 0)
+		if((sendpmsg(conn_fd,data,passphrase2)) < 0)
 			ERR_EXIT("SEND");
 		//=========send seq=============================================
 
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
+		if((rbytes = recvpmsg(conn_fd,&rbuf,passphrase2)) == -1)
 			ERR_EXIT("recv");
 		if(rbytes == -2)
 		{
@@ -56,7 +56,7 @@ void request(int conn_fd)
 
 			memset(data,0,sizeof(data));
 			sprintf(data,"%d",seq);
-			if((sendpmsg(conn_fd,data)) < 0)
+			if((sendpmsg(conn_fd,data,passphrase2)) < 0)
 				ERR_EXIT("SEND");
 			cli_status = TALKING;
 		}
@@ -64,7 +64,7 @@ void request(int conn_fd)
 	}while(0);
 }
 
-void talking(int conn_fd)
+void talking(int conn_fd,char *key)
 {
 	fd_set rfds;
 	int retval,rbytes;
@@ -90,14 +90,14 @@ void talking(int conn_fd)
 		{
 			memset(data,0,sizeof(data));
 			fgets(data,sizeof(data),stdin);
-			if((sendpmsg(conn_fd,data)) < 0)
+			if((sendpmsg(conn_fd,data,key)) < 0)
 				ERR_EXIT("SEND");
 		}
 
 		if(FD_ISSET(conn_fd,&rfds))
 		{
 			//memset(&rbuf,0,sizeof(rbuf));
-			rbytes = recvpmsg(conn_fd,&rbuf);
+			rbytes = recvpmsg(conn_fd,&rbuf,key);
 			if(rbytes == -1)
 				ERR_EXIT("recvpmsg");
 			if(rbytes == -2)
@@ -161,7 +161,7 @@ void pasc_connect(char *ipaddr)
 			break;
 			case TALKING:
 				printf("Connected!\n");
-				talking(conn_fd);
+				talking(conn_fd,passphrase2);
 				printf("peer end connecting\n");
 				cli_status = END;
 				break;

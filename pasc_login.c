@@ -68,11 +68,11 @@ void confirm(int conn_fd)
 //		char stdinbuf[1024];
 //		setbuf(stdin,stdinbuf);
 		printf("Is connecting......\n");
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
+		if((rbytes = recvpmsg(conn_fd,&rbuf,NULL)) == -1)
 			ERR_EXIT("recv");
 		if(rbytes == -2)
 		{
-			printf("1 Date is modfixed illegally!\n");
+			printf("Date is modfixed illegally or password error!\n");
 			srv_status = END;
 			break;
 		}
@@ -83,7 +83,7 @@ void confirm(int conn_fd)
 		}
 		else
 		{
-			printf("peer passphrase1 is %s\n",rbuf.data);
+			printf("peer passphrase1 is %s",rbuf.data);
 			printf("Type passphrase2:");
 			fflush(stdin);
 			//cleanfilebuf(stdin);
@@ -92,11 +92,11 @@ void confirm(int conn_fd)
 		}
 		//========recive passphrase1=========================
 
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) == -1)
+		if((rbytes = recvpmsg(conn_fd,&rbuf,passphrase3)) == -1)
 			ERR_EXIT("recv");
 		if(rbytes == -2)
 		{
-			printf("2 Date is modfixed illegally!\n");
+			printf("Date is modfixed illegally or password error!\n");
 			srv_status = END;
 			break;
 		}
@@ -112,16 +112,16 @@ void confirm(int conn_fd)
 			seq = pseq + 1;
 			memset(data,0,sizeof(data));
 			sprintf(data,"%d",seq);
-			if((sendpmsg(conn_fd,data)) < 0)
+			if((sendpmsg(conn_fd,data,passphrase3)) < 0)
 				ERR_EXIT("SEND");
 		}
 		//=========recive pseq and send seq====================
 
-		if((rbytes = recvpmsg(conn_fd,&rbuf)) < 0)
+		if((rbytes = recvpmsg(conn_fd,&rbuf,passphrase3)) < 0)
 			ERR_EXIT("recv");
 		if(rbytes == -2)
 		{
-			printf("3 Date is modfixed illegally!\n");
+			printf("3 Date is modfixed illegally or password error!\n");
 			srv_status = END;
 			break;
 		}
@@ -159,7 +159,7 @@ void deal_conn(int conn_fd)
 			break;
 			case TALKING:
 				printf("Connected!\n");
-				talking(conn_fd);  //only parent process will return,other exit directry;
+				talking(conn_fd,passphrase3);  //only parent process will return,other exit directry;
 				srv_status = END;
 				break;
 			case END:

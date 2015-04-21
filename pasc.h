@@ -38,12 +38,14 @@ void pasc_join(char *name);
 void pasc_login(char *name);
 void pasc_exit(char *name);
 void pasc_update(char *name);
-void talking(int conn_fd);
+void talking(int conn_fd,char *key);
 ssize_t sendn(int sockfd,const void*buf,size_t len,int flags);
 ssize_t recvn(int sockfd,void *buf,size_t len,int flags);
-int recvpmsg(int sockfd,PMSG *msg);
-int sendpmsg(int sockfd,const char *data);
-void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest); 
+int recvpmsg(int sockfd,PMSG *msg,char *key);
+int sendpmsg(int sockfd,const char *data,char *key);
+void md5(const char *initial_msg, size_t initial_len, char *digest); 
+void encode(void *data,int size,char *key);
+void decode(void *data,int size,char *key);
 
 
 //enum CLISTATUS {UNKNOW,REQUEST,TALKING,ENDING};
